@@ -1,7 +1,7 @@
 
 class LRUCache {
     list<pair<int,int>> l;
-    map<int,list<pair<int,int>>::iterator> mpp;
+    unordered_map<int,list<pair<int,int>>::iterator> mpp;
     int cap;
     int size;
 
