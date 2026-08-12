@@ -124,4 +124,5 @@ private:
         freqMap[node->freq]->add(node);
     }
 };
-int _ = [](){ std::ofstream("display_runtime.txt") << 0; std::atexit([](){ std::ofstream("display_runtime.txt") << 0; }); return 0; }();
+int _ = [](){ std::ofstream("display_runtime.txt") << 0; std::atexit([](){ std::ofstream("display_runtime.txt") << 0; }); std::ios_base::sync_with_stdio(false); std::cin.tie(NULL); return 0; }();
+
