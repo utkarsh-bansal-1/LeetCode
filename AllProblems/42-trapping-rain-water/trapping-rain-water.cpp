@@ -1,25 +1,21 @@
 class Solution {
 public:
     int trap(vector<int>& height) {
-        // better approach using two stacks prefix and suffix . ans [i]= min(prefix , suffix ) -  height[i] . 
-        // prefix or suffix have values representing the maximum found height till that index . including that index . 
+        // optimal solution using two pointer . with O(1) space . 
         int n=height.size();
-        vector<int> prefix(n , 0),suffix(n , 0);
-        int maxele=0;
-        for(int i=0 ; i<n ; i++){
-            maxele=max(maxele , height[i]);
-            prefix[i]=maxele;
-        }
-
-        maxele=0;
-        for(int i=n-1 ; i>=0 ; i--){
-            maxele=max(maxele, height[i]);
-            suffix[i]=maxele;
-        }
-
+        int l=0,r=n-1;
+        int lMax=0,rMax=0;
         int ans=0;
-        for(int i=0 ; i<n ; i++){
-            ans+=min(prefix[i] , suffix[i])-height[i];
+        while(l<r){
+            lMax=max(lMax , height[l]),rMax=max(rMax , height[r]);
+            if(lMax<=rMax){
+                ans+=lMax-height[l];
+                l++;
+            }
+            else{
+                ans+=rMax-height[r];
+                r--;
+            }
         }
 
         return ans;
