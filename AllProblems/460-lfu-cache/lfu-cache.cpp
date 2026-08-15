@@ -1,64 +1,23 @@
-#include <unordered_map>
-using namespace std;
-
 class LFUCache {
-private:
 
+    // frequency -> list of {key, value}
+    // Front = least recently used
+    // Back  = most recently used
+    unordered_map<int, list<pair<int,int>>> freqList;
+
+    // key -> {value, frequency, iterator inside freqList[frequency]}
     struct Node {
-        int key, value, freq;
-        Node* prev;
-        Node* next;
-
-        Node(int k,int v) {
-            key = k;
-            value = v;
-            freq = 1;
-            prev = next = nullptr;
-        }
+        int value;
+        int freq;
+        list<pair<int,int>>::iterator it;
     };
 
-    struct DLL {
-        Node* head;
-        Node* tail;
-        int size;
+    unordered_map<int, Node> mpp;
 
-        DLL() {
-            head = new Node(0,0);
-            tail = new Node(0,0);
-            head->next = tail;
-            tail->prev = head;
-            size = 0;
-        }
-
-        void add(Node* node) {
-            node->prev = head;
-            node->next = head->next;
-            head->next->prev = node;
-            head->next = node;
-            size++;
-        }
-
-        void remove(Node* node) {
-            node->prev->next = node->next;
-            node->next->prev = node->prev;
-            size--;
-        }
-
-        Node* removeLast() {
-            if(size > 0) {
-                Node* node = tail->prev;
-                remove(node);
-                return node;
-            }
-            return nullptr;
-        }
-    };
-
-    unordered_map<int,Node*> keyMap;
-    unordered_map<int,DLL*> freqMap;
+    // Smallest frequency currently present
+    int minFreq;
 
     int capacity;
-    int minFreq;
 
 public:
 
@@ -69,60 +28,102 @@ public:
 
     int get(int key) {
 
-        if(!keyMap.count(key)) return -1;
+        // key does not exist
+        if (mpp.find(key) == mpp.end())
+            return -1;
 
-        Node* node = keyMap[key];
-        update(node);
-        return node->value;
+        // Get current information
+        int value = mpp[key].value;
+        int freq = mpp[key].freq;
+
+        // Remove key from old frequency list
+        freqList[freq].erase(mpp[key].it);
+
+        // If old frequency list becomes empty
+        // and it was the minimum frequency,
+        // increase minFreq
+        if (freqList[freq].empty()) {
+            freqList.erase(freq);
+
+            if (minFreq == freq)
+                minFreq++;
+        }
+
+        // Move key to frequency + 1
+        freq++;
+
+        // Insert at back
+        // because it is now most recently used
+        freqList[freq].push_back({key, value});
+
+        // Store new iterator
+        mpp[key].freq = freq;
+        mpp[key].it = --freqList[freq].end();
+
+        return value;
     }
 
-    void put(int key,int value) {
+    void put(int key, int value) {
 
-        if(capacity == 0) return;
+        // Capacity 0
+        if (capacity == 0)
+            return;
 
-        if(keyMap.count(key)) {
-            Node* node = keyMap[key];
-            node->value = value;
-            update(node);
+        // Key already exists
+        if (mpp.find(key) != mpp.end()) {
+
+            int freq = mpp[key].freq;
+
+            // Remove old position
+            freqList[freq].erase(mpp[key].it);
+
+            // If frequency list becomes empty
+            if (freqList[freq].empty()) {
+                freqList.erase(freq);
+
+                if (minFreq == freq)
+                    minFreq++;
+            }
+
+            // Updated key starts from frequency 1 higher
+            freq++;
+
+            freqList[freq].push_back({key, value});
+
+            mpp[key].value = value;
+            mpp[key].freq = freq;
+            mpp[key].it = --freqList[freq].end();
+
             return;
         }
 
-        if(keyMap.size() == capacity) {
-            DLL* list = freqMap[minFreq];
-            Node* removed = list->removeLast();
-            keyMap.erase(removed->key);
+        // Cache is full
+        if (mpp.size() == capacity) {
+
+            // Least frequently used list
+            auto &lst = freqList[minFreq];
+
+            // Front = least recently used
+            int keyToRemove = lst.front().first;
+
+            lst.pop_front();
+
+            // Remove from map
+            mpp.erase(keyToRemove);
+
+            // Remove empty frequency list
+            if (lst.empty())
+                freqList.erase(minFreq);
         }
 
-        Node* node = new Node(key,value);
-        keyMap[key] = node;
-
+        // New key always starts with frequency 1
         minFreq = 1;
 
-        if(!freqMap.count(1))
-            freqMap[1] = new DLL();
+        freqList[1].push_back({key, value});
 
-        freqMap[1]->add(node);
-    }
+        // Iterator to newly inserted node
+        auto it = --freqList[1].end();
 
-private:
-
-    void update(Node* node) {
-
-        int freq = node->freq;
-        DLL* list = freqMap[freq];
-
-        list->remove(node);
-
-        if(freq == minFreq && list->size == 0)
-            minFreq++;
-
-        node->freq++;
-
-        if(!freqMap.count(node->freq))
-            freqMap[node->freq] = new DLL();
-
-        freqMap[node->freq]->add(node);
+        mpp[key] = {value, 1, it};
     }
 };
-int _ = [](){ std::ofstream("display_runtime.txt") << 0; std::atexit([](){ std::ofstream("display_runtime.txt") << 0; }); std::ios_base::sync_with_stdio(false); std::cin.tie(NULL); return 0; }();
-
